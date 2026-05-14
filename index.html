@@ -1,322 +1,169 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebEditor</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css">
   <style>
     :root {
-      --bg: #ffffff;
-      --bg-light: #f6f6f6;
-      --bg-mid: #ebebeb;
-      --border: #e0e0e0;
-      --border-dark: #cccccc;
-      --text: #1b1b1b;
-      --text-sec: #727272;
-      --accent: #343ced;
-      --accent-hover: #2530c0;
-      --tab-active: #ffffff;
-      --tab-inactive: #f0f0f0;
-      --sidebar-bg: #f3f3f3;
-      --topbar-bg: #ffffff;
-      --dirty: #e07b00;
-      --status-bg: #343ced;
+      --bg:#1e1e1e; --bg2:#252526; --bg3:#2d2d2d;
+      --border:#333; --text:#ccc; --text2:#888;
+      --accent:#569cd6; --dirty:#e07b00;
+      --tab-active:#1e1e1e; --tab-inactive:#2d2d30;
+      --status:#007acc;
     }
-    [data-theme="dark"] {
-      --bg: #1e1e1e;
-      --bg-light: #252526;
-      --bg-mid: #2d2d2d;
-      --border: #333333;
-      --border-dark: #444444;
-      --text: #cccccc;
-      --text-sec: #888888;
-      --accent: #569cd6;
-      --accent-hover: #4a87c0;
-      --tab-active: #1e1e1e;
-      --tab-inactive: #2d2d30;
-      --sidebar-bg: #252526;
-      --topbar-bg: #323233;
-      --dirty: #e07b00;
-      --status-bg: #007acc;
+    [data-theme="light"] {
+      --bg:#fff; --bg2:#f3f3f3; --bg3:#ebebeb;
+      --border:#e0e0e0; --text:#1b1b1b; --text2:#727272;
+      --accent:#343ced; --tab-active:#fff; --tab-inactive:#f0f0f0;
+      --status:#343ced;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      font-size: 13px;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:13px;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
 
-    /* ── Topbar ── */
-    #topbar {
-      height: 40px;
-      background: var(--topbar-bg);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 10px;
-      gap: 4px;
-      flex-shrink: 0;
-      user-select: none;
-    }
-    #app-name { font-weight: 600; font-size: 13px; margin-right: 6px; color: var(--text); }
-    .tbtn {
-      background: none; border: none; color: var(--text-sec); cursor: pointer;
-      padding: 4px 8px; border-radius: 4px; font-size: 12px; display: flex;
-      align-items: center; gap: 4px; transition: background 0.12s, color 0.12s;
-      white-space: nowrap;
-    }
-    .tbtn:hover { background: var(--bg-mid); color: var(--text); }
-    .tdivider { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
-    #topbar-right { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+    /* topbar */
+    #topbar{height:40px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:4px;flex-shrink:0;user-select:none}
+    #app-name{font-weight:600;font-size:13px;margin-right:6px;color:var(--text)}
+    .tbtn{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px 8px;border-radius:4px;font-size:12px;display:flex;align-items:center;gap:4px;transition:background .12s,color .12s;white-space:nowrap}
+    .tbtn:hover{background:var(--bg3);color:var(--text)}
+    .tdiv{width:1px;height:18px;background:var(--border);flex-shrink:0;margin:0 2px}
+    #topbar-right{margin-left:auto;display:flex;align-items:center;gap:2px}
 
-    /* ── Main layout ── */
-    #main { display: flex; flex: 1; overflow: hidden; }
+    /* main layout */
+    #main{display:flex;flex:1;overflow:hidden}
 
-    /* ── Sidebar ── */
-    #sidebar {
-      width: 220px; min-width: 120px; max-width: 450px;
-      background: var(--sidebar-bg); border-right: 1px solid var(--border);
-      display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
-    }
-    #sidebar-header {
-      padding: 7px 10px; font-size: 10.5px; font-weight: 600;
-      letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-sec);
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid var(--border); flex-shrink: 0;
-    }
-    #sidebar-actions { display: flex; gap: 1px; }
-    .ibtn {
-      background: none; border: none; color: var(--text-sec); cursor: pointer;
-      width: 22px; height: 22px; border-radius: 3px; display: flex;
-      align-items: center; justify-content: center; font-size: 13px;
-      transition: background 0.12s, color 0.12s;
-    }
-    .ibtn:hover { background: var(--bg-mid); color: var(--text); }
-    #file-tree { flex: 1; overflow-y: auto; padding: 3px 0; }
-    .tree-item {
-      display: flex; align-items: center; padding: 3px 8px; cursor: pointer;
-      border-radius: 3px; margin: 0 3px; gap: 5px; white-space: nowrap;
-      overflow: hidden; color: var(--text); user-select: none;
-    }
-    .tree-item:hover { background: var(--bg-mid); }
-    .tree-item.active { background: var(--accent); color: white; }
-    .tree-item.active .ti-icon { color: white; }
-    .ti-icon { font-size: 12px; color: var(--text-sec); flex-shrink: 0; }
-    .ti-name { flex: 1; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; }
-    .tree-children { padding-left: 10px; }
+    /* sidebar */
+    #sidebar{width:220px;min-width:120px;max-width:450px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+    #sidebar-hdr{padding:7px 10px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+    #sidebar-actions{display:flex;gap:1px}
+    .ibtn{background:none;border:none;color:var(--text2);cursor:pointer;width:22px;height:22px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .12s,color .12s}
+    .ibtn:hover{background:var(--bg3);color:var(--text)}
+    #file-tree{flex:1;overflow-y:auto;padding:3px 0}
+    .tree-item{display:flex;align-items:center;padding:3px 8px;cursor:pointer;border-radius:3px;margin:0 3px;gap:5px;white-space:nowrap;overflow:hidden;color:var(--text);user-select:none}
+    .tree-item:hover{background:var(--bg3)}
+    .tree-item.active{background:var(--accent);color:#fff}
+    .tree-item.active .ti-icon{color:#fff}
+    .ti-icon{font-size:12px;color:var(--text2);flex-shrink:0}
+    .ti-name{flex:1;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+    .tree-children{padding-left:12px}
+    #rhandle{width:4px;cursor:col-resize;background:transparent;flex-shrink:0;transition:background .2s}
+    #rhandle:hover,#rhandle.dragging{background:var(--accent)}
 
-    /* ── Resize handle ── */
-    #rhandle {
-      width: 4px; cursor: col-resize; background: transparent; flex-shrink: 0;
-      transition: background 0.2s;
-    }
-    #rhandle:hover, #rhandle.dragging { background: var(--accent); }
+    /* editor area */
+    #editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    #tab-bar{height:34px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:flex-end;overflow-x:auto;overflow-y:hidden;flex-shrink:0}
+    #tab-bar::-webkit-scrollbar{height:3px}
+    #tab-bar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .tab{display:flex;align-items:center;gap:5px;padding:0 11px;height:31px;cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:4px 4px 0 0;background:var(--tab-inactive);color:var(--text2);white-space:nowrap;font-size:12px;flex-shrink:0;transition:background .1s,color .1s;user-select:none}
+    .tab.active{background:var(--tab-active);color:var(--text);border-color:var(--border)}
+    .tab:hover:not(.active){background:var(--bg3);color:var(--text)}
+    .tab-dot{width:6px;height:6px;border-radius:50%;background:var(--dirty);flex-shrink:0}
+    .tab-x{background:none;border:none;color:var(--text2);cursor:pointer;width:15px;height:15px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:11px;transition:background .1s}
+    .tab-x:hover{background:rgba(127,127,127,.25);color:var(--text)}
+    .tab-new-btn{background:none;border:none;color:var(--text2);cursor:pointer;padding:0 10px;height:31px;font-size:18px;display:flex;align-items:center;transition:color .1s;flex-shrink:0}
+    .tab-new-btn:hover{color:var(--text)}
+    #editor-wrap{flex:1;overflow:hidden;position:relative}
+    .CodeMirror{height:100%!important;font-size:14px;font-family:'JetBrains Mono','Fira Code','Cascadia Code',Consolas,monospace;line-height:1.6}
+    #empty-state{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);color:var(--text2);gap:10px;pointer-events:none}
+    #empty-state .esi{font-size:36px;opacity:.25}
+    #drag-overlay{position:absolute;inset:0;background:rgba(52,60,237,.08);border:2px dashed var(--accent);display:none;align-items:center;justify-content:center;z-index:50;pointer-events:none}
+    #drag-overlay.show{display:flex}
+    #drag-overlay p{font-size:15px;color:var(--accent);font-weight:500}
 
-    /* ── Editor area ── */
-    #editor-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    /* find bar */
+    #find-bar{border-top:1px solid var(--border);background:var(--bg2);padding:5px 10px;display:none;align-items:center;gap:6px;flex-shrink:0}
+    #find-bar.show{display:flex}
+    .finput{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:4px;font-size:12px;width:180px;outline:none;font-family:inherit}
+    .finput:focus{border-color:var(--accent)}
+    .fbtn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:4px;font-size:12px;cursor:pointer}
+    .fbtn:hover{background:var(--border)}
+    #find-count{font-size:11px;color:var(--text2);min-width:70px}
+    #find-close{margin-left:auto;background:none;border:none;color:var(--text2);cursor:pointer;font-size:15px;padding:2px 5px;border-radius:3px}
+    #find-close:hover{background:var(--bg3);color:var(--text)}
 
-    /* ── Tab bar ── */
-    #tab-bar {
-      height: 34px; background: var(--bg-light); border-bottom: 1px solid var(--border);
-      display: flex; align-items: flex-end; overflow-x: auto; overflow-y: hidden; flex-shrink: 0;
-    }
-    #tab-bar::-webkit-scrollbar { height: 3px; }
-    #tab-bar::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 2px; }
-    .tab {
-      display: flex; align-items: center; gap: 5px; padding: 0 11px; height: 31px;
-      cursor: pointer; border: 1px solid transparent; border-bottom: none;
-      border-radius: 4px 4px 0 0; background: var(--tab-inactive); color: var(--text-sec);
-      white-space: nowrap; font-size: 12px; flex-shrink: 0;
-      transition: background 0.1s, color 0.1s; user-select: none;
-    }
-    .tab.active { background: var(--tab-active); color: var(--text); border-color: var(--border); }
-    .tab:hover:not(.active) { background: var(--bg-mid); color: var(--text); }
-    .tab-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dirty); flex-shrink: 0; }
-    .tab-x {
-      background: none; border: none; color: var(--text-sec); cursor: pointer;
-      width: 15px; height: 15px; border-radius: 2px; display: flex; align-items: center;
-      justify-content: center; font-size: 11px; line-height: 1; transition: background 0.1s;
-    }
-    .tab-x:hover { background: rgba(127,127,127,0.25); color: var(--text); }
-    .tab-new-btn {
-      background: none; border: none; color: var(--text-sec); cursor: pointer;
-      padding: 0 10px; height: 31px; font-size: 18px; display: flex; align-items: center;
-      transition: color 0.1s; flex-shrink: 0;
-    }
-    .tab-new-btn:hover { color: var(--text); }
+    /* status bar */
+    #status-bar{height:22px;background:var(--status);color:rgba(255,255,255,.9);display:flex;align-items:center;padding:0 10px;font-size:11px;gap:14px;flex-shrink:0}
+    #status-msg{margin-left:auto}
+    #status-msg.err{color:#ff9090}
 
-    /* ── Editor wrapper ── */
-    #editor-wrap {
-      flex: 1; overflow: hidden; position: relative; background: var(--bg);
-    }
-    #editor-mount { height: 100%; display: none; }
-    #editor-mount .cm-editor { height: 100%; }
-    #editor-mount .cm-editor.cm-focused { outline: none; }
-    #editor-mount .cm-scroller {
-      overflow: auto;
-      font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
-      font-size: 13px; line-height: 1.6;
-    }
-    #empty-state {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      height: 100%; color: var(--text-sec); gap: 10px;
-    }
-    #empty-state .esi { font-size: 36px; opacity: 0.25; }
-    #empty-state p { font-size: 13px; }
-    #drag-overlay {
-      position: absolute; inset: 0; background: rgba(52,60,237,0.08);
-      border: 2px dashed var(--accent); display: none; align-items: center;
-      justify-content: center; z-index: 50; pointer-events: none; border-radius: 2px;
-    }
-    #drag-overlay.show { display: flex; }
-    #drag-overlay p { font-size: 15px; color: var(--accent); font-weight: 500; }
+    /* context menu */
+    #ctx-menu{position:fixed;background:var(--bg);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:900;display:none;min-width:160px;padding:4px 0}
+    #ctx-menu.show{display:block}
+    .ctx-item{padding:6px 14px;cursor:pointer;font-size:12px;color:var(--text);transition:background .1s}
+    .ctx-item:hover{background:var(--bg3)}
+    .ctx-item.danger{color:#e05252}
+    .ctx-sep{height:1px;background:var(--border);margin:3px 0}
 
-    /* ── Find bar ── */
-    #find-bar {
-      border-top: 1px solid var(--border); background: var(--bg-light);
-      padding: 5px 10px; display: none; align-items: center; gap: 6px; flex-shrink: 0;
-    }
-    #find-bar.show { display: flex; }
-    .finput {
-      background: var(--bg); border: 1px solid var(--border-dark); color: var(--text);
-      padding: 3px 8px; border-radius: 4px; font-size: 12px; width: 180px; outline: none;
-      font-family: inherit;
-    }
-    .finput:focus { border-color: var(--accent); }
-    .fbtn {
-      background: var(--bg-mid); border: 1px solid var(--border); color: var(--text);
-      padding: 3px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;
-      transition: background 0.1s; white-space: nowrap;
-    }
-    .fbtn:hover { background: var(--border); }
-    #find-count { font-size: 11px; color: var(--text-sec); min-width: 70px; }
-    #find-close {
-      margin-left: auto; background: none; border: none; color: var(--text-sec);
-      cursor: pointer; font-size: 15px; padding: 2px 5px; border-radius: 3px;
-    }
-    #find-close:hover { background: var(--bg-mid); color: var(--text); }
-    .find-label { font-size: 11px; color: var(--text-sec); }
-
-    /* ── Status bar ── */
-    #status-bar {
-      height: 22px; background: var(--status-bg); color: rgba(255,255,255,0.9);
-      display: flex; align-items: center; padding: 0 10px; font-size: 11px;
-      gap: 14px; flex-shrink: 0;
-    }
-    #status-msg { margin-left: auto; }
-    #status-msg.err { color: #ff9090; }
-
-    /* ── Context menu ── */
-    #ctx-menu {
-      position: fixed; background: var(--bg); border: 1px solid var(--border-dark);
-      border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); z-index: 900;
-      display: none; min-width: 160px; padding: 4px 0;
-    }
-    #ctx-menu.show { display: block; }
-    .ctx-item {
-      padding: 6px 14px; cursor: pointer; font-size: 12px; color: var(--text);
-      transition: background 0.1s;
-    }
-    .ctx-item:hover { background: var(--bg-mid); }
-    .ctx-item.danger { color: #e05252; }
-    .ctx-sep { height: 1px; background: var(--border); margin: 3px 0; }
-
-    /* ── Modal ── */
-    #modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.42); z-index: 800;
-      display: none; align-items: center; justify-content: center;
-    }
-    #modal-overlay.show { display: flex; }
-    #modal {
-      background: var(--bg); border: 1px solid var(--border-dark); border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.22); padding: 22px; width: 400px; max-width: 92vw;
-    }
-    #modal h2 { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--text); }
-    .mfield { margin-bottom: 12px; }
-    .mlabel { display: block; font-size: 11.5px; color: var(--text-sec); margin-bottom: 4px; }
-    .minput {
-      width: 100%; background: var(--bg-light); border: 1px solid var(--border-dark);
-      color: var(--text); padding: 7px 9px; border-radius: 5px; font-size: 13px;
-      outline: none; font-family: inherit;
-    }
-    .minput:focus { border-color: var(--accent); }
-    .mhelp { font-size: 11px; color: var(--text-sec); margin-top: 3px; }
-    .mactions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 18px; }
-    .btn { padding: 6px 14px; border-radius: 5px; font-size: 12.5px; cursor: pointer; border: 1px solid transparent; transition: background 0.12s; font-family: inherit; }
-    .btn-sec { background: var(--bg-light); border-color: var(--border-dark); color: var(--text); }
-    .btn-sec:hover { background: var(--bg-mid); }
-    .btn-pri { background: var(--accent); color: white; border-color: var(--accent); }
-    .btn-pri:hover { background: var(--accent-hover); }
-
-    /* ── Scrollbars ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-sec); }
-
-    @media print {
-      body { margin: 0; padding: 0; }
-      #topbar, #tab-bar, #sidebar, #rhandle, #find-bar, #status-bar, #ctx-menu, #modal-overlay { display: none !important; }
-      #editor-area { display: block !important; }
-      #editor-wrap { overflow: visible !important; }
-    }
+    /* modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center}
+    .modal-backdrop.show{display:flex}
+    .modal{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;min-width:340px;max-width:500px;width:90%}
+    .modal h3{margin-bottom:14px;font-size:14px;color:var(--text)}
+    .modal label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;margin-top:10px}
+    .modal input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-size:13px;outline:none;font-family:inherit}
+    .modal input:focus{border-color:var(--accent)}
+    .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+    .mbtn{padding:6px 14px;border-radius:4px;font-size:12px;cursor:pointer;border:none}
+    .mbtn-pri{background:var(--accent);color:#fff}
+    .mbtn-sec{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
   </style>
 </head>
 <body>
-
 <div id="topbar">
-  <span id="app-name">✏️ WebEditor</span>
-  <div class="tdivider"></div>
-  <button class="tbtn" id="btn-new">📄 New</button>
-  <button class="tbtn" id="btn-open">📂 Open</button>
-  <button class="tbtn" id="btn-dl">⬇️ Download</button>
-  <div class="tdivider"></div>
-  <button class="tbtn" id="btn-gist-save">☁️ Save to Gist</button>
-  <button class="tbtn" id="btn-gist-load">📥 Load Gist</button>
+  <span id="app-name">&#9998; WebEditor</span>
+  <div class="tdiv"></div>
+  <button class="tbtn" onclick="newFile()">&#43; New</button>
+  <button class="tbtn" onclick="openFilePicker()">&#128194; Open</button>
+  <button class="tbtn" onclick="downloadActive()">&#8659; Download</button>
+  <div class="tdiv"></div>
+  <button class="tbtn" onclick="saveToGist()">&#9729; Save Gist</button>
+  <button class="tbtn" onclick="openLoadGistModal()">&#8615; Load Gist</button>
   <div id="topbar-right">
-    <button class="tbtn" id="btn-find-open">🔍</button>
-    <button class="tbtn" id="btn-theme"><span id="theme-icon">🌙</span></button>
-    <button class="tbtn" id="btn-settings">⚙️</button>
+    <button class="tbtn" onclick="toggleTheme()">&#9790; Theme</button>
+    <button class="tbtn" onclick="openSettings()">&#9881; Settings</button>
   </div>
 </div>
 
 <div id="main">
   <div id="sidebar">
-    <div id="sidebar-header">
+    <div id="sidebar-hdr">
       Files
       <div id="sidebar-actions">
-        <button class="ibtn" id="btn-new-sb" title="New file">📄+</button>
-        <button class="ibtn" id="btn-folder-sb" title="New folder">📁+</button>
+        <button class="ibtn" title="New file" onclick="newFile()">&#43;</button>
+        <button class="ibtn" title="New folder" onclick="newFolder()">&#128193;</button>
       </div>
     </div>
     <div id="file-tree"></div>
   </div>
   <div id="rhandle"></div>
   <div id="editor-area">
-    <div id="tab-bar"></div>
+    <div id="tab-bar">
+      <button class="tab-new-btn" onclick="newFile()" title="New tab">+</button>
+    </div>
     <div id="editor-wrap">
-      <div id="editor-mount"></div>
       <div id="empty-state">
-        <div class="esi">📝</div>
-        <p>Open a file from the sidebar, or drag one in</p>
+        <div class="esi">&#9998;</div>
+        <p>Open or create a file to start editing</p>
+        <p style="font-size:11px">Drag a file here to open it</p>
       </div>
       <div id="drag-overlay"><p>Drop to open</p></div>
+      <textarea id="cm-host"></textarea>
     </div>
     <div id="find-bar">
-      <span class="find-label">Find</span>
-      <input class="finput" id="fi" placeholder="Search…" />
-      <span class="find-label">Replace</span>
-      <input class="finput" id="ri" placeholder="Replace…" />
-      <button class="fbtn" id="fprev">↑</button>
-      <button class="fbtn" id="fnext">↓</button>
-      <button class="fbtn" id="frone">Replace</button>
-      <button class="fbtn" id="frall">All</button>
+      <span style="font-size:11px;color:var(--text2)">Find</span>
+      <input class="finput" id="find-input" placeholder="Search...">
+      <span style="font-size:11px;color:var(--text2)">Replace</span>
+      <input class="finput" id="replace-input" placeholder="Replace...">
+      <button class="fbtn" onclick="findPrev()">&#8593;</button>
+      <button class="fbtn" onclick="findNext()">&#8595;</button>
+      <button class="fbtn" onclick="replaceOne()">Replace</button>
+      <button class="fbtn" onclick="replaceAll()">All</button>
       <span id="find-count"></span>
-      <button id="find-close">✕</button>
+      <button id="find-close" onclick="closeFind()">&#10005;</button>
     </div>
   </div>
 </div>
@@ -328,604 +175,594 @@
 </div>
 
 <div id="ctx-menu">
-  <div class="ctx-item" data-a="rename">Rename</div>
-  <div class="ctx-item" data-a="dl">Download</div>
+  <div class="ctx-item" id="ctx-rename">Rename</div>
+  <div class="ctx-item" id="ctx-download">Download</div>
   <div class="ctx-sep"></div>
-  <div class="ctx-item danger" data-a="del">Delete</div>
+  <div class="ctx-item danger" id="ctx-delete">Delete</div>
 </div>
 
-<div id="modal-overlay">
-  <div id="modal">
-    <h2 id="modal-title"></h2>
-    <div id="modal-body"></div>
-    <div class="mactions">
-      <button class="btn btn-sec" id="modal-cancel">Cancel</button>
-      <button class="btn btn-pri" id="modal-ok">OK</button>
+<!-- Settings modal -->
+<div class="modal-backdrop" id="settings-modal">
+  <div class="modal">
+    <h3>Settings</h3>
+    <label>GitHub Personal Access Token (gist scope)</label>
+    <input type="password" id="pat-input" placeholder="ghp_...">
+    <div class="modal-btns">
+      <button class="mbtn mbtn-sec" onclick="closeSettings()">Cancel</button>
+      <button class="mbtn mbtn-pri" onclick="saveSettings()">Save</button>
     </div>
   </div>
 </div>
 
-<input type="file" id="file-input" multiple style="display:none" />
+<!-- Load Gist modal -->
+<div class="modal-backdrop" id="gist-modal">
+  <div class="modal">
+    <h3>Load Gist</h3>
+    <label>Gist ID or URL</label>
+    <input type="text" id="gist-input" placeholder="https://gist.github.com/user/abc123 or abc123">
+    <div class="modal-btns">
+      <button class="mbtn mbtn-sec" onclick="closeGistModal()">Cancel</button>
+      <button class="mbtn mbtn-pri" onclick="loadGist()">Load</button>
+    </div>
+  </div>
+</div>
 
-<script type="module">
-// ── Imports ──────────────────────────────────────────────────────────────────
-import { EditorView, basicSetup } from 'https://esm.sh/codemirror@6.0.1';
-import { EditorState, Compartment } from 'https://esm.sh/@codemirror/state@6.4.1';
-import { keymap } from 'https://esm.sh/@codemirror/view@6.36.2';
-import { indentWithTab } from 'https://esm.sh/@codemirror/commands@6.8.0';
-import { javascript } from 'https://esm.sh/@codemirror/lang-javascript@6.2.3';
-import { html as htmlLang } from 'https://esm.sh/@codemirror/lang-html@6.4.9';
-import { css as cssLang } from 'https://esm.sh/@codemirror/lang-css@6.3.1';
-import { python } from 'https://esm.sh/@codemirror/lang-python@6.1.7';
-import { sql } from 'https://esm.sh/@codemirror/lang-sql@6.8.0';
-import { json } from 'https://esm.sh/@codemirror/lang-json@6.0.1';
-import { markdown } from 'https://esm.sh/@codemirror/lang-markdown@6.3.2';
-import { oneDark } from 'https://esm.sh/@codemirror/theme-one-dark@6.1.2';
+<!-- Rename modal -->
+<div class="modal-backdrop" id="rename-modal">
+  <div class="modal">
+    <h3>Rename</h3>
+    <label>New name</label>
+    <input type="text" id="rename-input">
+    <div class="modal-btns">
+      <button class="mbtn mbtn-sec" onclick="closeRenameModal()">Cancel</button>
+      <button class="mbtn mbtn-pri" onclick="confirmRename()">Rename</button>
+    </div>
+  </div>
+</div>
 
-// ── DB ────────────────────────────────────────────────────────────────────────
+<!-- CodeMirror 5 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/scroll/simplescrollbars.min.js"></script>
+
+<script>
+// ── IDB helper ────────────────────────────────────────────────────────────────
+const DB_NAME = 'webeditor', DB_VER = 1;
 let db;
-async function openDB() {
+function openDB() {
   return new Promise((res, rej) => {
-    const r = indexedDB.open('webeditor_v1', 1);
-    r.onupgradeneeded = e => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
       const d = e.target.result;
-      if (!d.objectStoreNames.contains('files')) {
-        const fs = d.createObjectStore('files', { keyPath: 'id' });
-        fs.createIndex('parentId', 'parentId');
-      }
-      if (!d.objectStoreNames.contains('folders')) {
-        const fo = d.createObjectStore('folders', { keyPath: 'id' });
-        fo.createIndex('parentId', 'parentId');
-      }
-      if (!d.objectStoreNames.contains('session'))
-        d.createObjectStore('session', { keyPath: 'key' });
+      if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', {keyPath:'id'});
+      if (!d.objectStoreNames.contains('meta'))  d.createObjectStore('meta',  {keyPath:'key'});
     };
-    r.onsuccess = e => { db = e.target.result; res(db); };
-    r.onerror = () => rej(r.error);
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror   = () => rej(req.error);
   });
 }
-const tx = (s, m = 'readonly') => db.transaction(Array.isArray(s) ? s : [s], m);
-const dbGet = (s, k) => new Promise((res, rej) => { const r = tx(s).objectStore(s).get(k); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-const dbPut = (s, v) => new Promise((res, rej) => { const r = tx(s, 'readwrite').objectStore(s).put(v); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-const dbDel = (s, k) => new Promise((res, rej) => { const r = tx(s, 'readwrite').objectStore(s).delete(k); r.onsuccess = () => res(); r.onerror = () => rej(r.error); });
-const dbAll = (s) => new Promise((res, rej) => { const r = tx(s).objectStore(s).getAll(); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-const dbIdx = (s, idx, v) => new Promise((res, rej) => { const r = tx(s).objectStore(s).index(idx).getAll(v); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-const uid = () => crypto.randomUUID();
+function dbPut(store, val) {
+  return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(val);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});
+}
+function dbGet(store, key) {
+  return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const req=tx.objectStore(store).get(key);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});
+}
+function dbGetAll(store) {
+  return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});
+}
+function dbDelete(store, key) {
+  return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(key);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let tabs = [], activeIdx = -1, view = null;
-const langC = new Compartment(), themeC = new Compartment();
-let dark = false, ctxTarget = null, modalCb = null;
+let files = {};       // id -> {id, name, parentId, isFolder, content, gistId, gistFileId}
+let tabs  = [];       // [{fileId, dirty}]
+let activeTab = -1;
+let cm;               // CodeMirror instance
+let ctxTarget = null; // file id for context menu
+let renameTarget = null;
 
-// ── Language helpers ──────────────────────────────────────────────────────────
-const LANGS = { js:'JavaScript',jsx:'JSX',ts:'TypeScript',tsx:'TSX',html:'HTML',htm:'HTML',css:'CSS',scss:'SCSS',py:'Python',sql:'SQL',json:'JSON',md:'Markdown',markdown:'Markdown',sh:'Shell',bash:'Shell',yaml:'YAML',yml:'YAML',txt:'Plain Text' };
-const ICONS = { js:'📜',jsx:'📜',ts:'📘',tsx:'📘',html:'🌐',htm:'🌐',css:'🎨',scss:'🎨',py:'🐍',sql:'🗄️',json:'📋',md:'📝',txt:'📄',sh:'⚡',bash:'⚡',yaml:'⚙️',yml:'⚙️' };
-const ext = n => (n||'').split('.').pop().toLowerCase();
-const langName = n => LANGS[ext(n)] || 'Plain Text';
-const fileIcon = n => ICONS[ext(n)] || '📄';
-function getLang(n) {
-  const e = ext(n);
-  if(['js','jsx'].includes(e)) return javascript({jsx:e==='jsx'});
-  if(['ts','tsx'].includes(e)) return javascript({typescript:true,jsx:e==='tsx'});
-  if(['html','htm'].includes(e)) return htmlLang();
-  if(['css','scss'].includes(e)) return cssLang();
-  if(e==='py') return python();
-  if(e==='sql') return sql();
-  if(e==='json') return json();
-  if(['md','markdown'].includes(e)) return markdown();
-  return null;
+// ── Language detection ────────────────────────────────────────────────────────
+const MODES = {
+  js:'javascript', mjs:'javascript', cjs:'javascript',
+  ts:'javascript', tsx:'javascript', jsx:'javascript',
+  html:'htmlmixed', htm:'htmlmixed',
+  css:'css', scss:'css', less:'css',
+  py:'python',
+  sql:'sql',
+  md:'markdown', markdown:'markdown',
+  yaml:'yaml', yml:'yaml',
+  sh:'shell', bash:'shell', zsh:'shell',
+  php:'php',
+  json:'javascript',
+  xml:'xml',
+};
+const LANG_NAMES = {
+  javascript:'JavaScript', htmlmixed:'HTML', css:'CSS',
+  python:'Python', sql:'SQL', markdown:'Markdown',
+  yaml:'YAML', shell:'Shell', php:'PHP', xml:'XML',
+};
+function getLang(name) {
+  const ext = (name||'').split('.').pop().toLowerCase();
+  return MODES[ext] || 'null';
+}
+function getLangName(name) {
+  return LANG_NAMES[getLang(name)] || 'Plain Text';
 }
 
-// ── Editor ────────────────────────────────────────────────────────────────────
-function initEditor() {
-  view = new EditorView({
-    state: EditorState.create({
-      doc: '',
-      extensions: [
-        basicSetup,
-        keymap.of([indentWithTab]),
-        langC.of([]),
-        themeC.of([]),
-        EditorView.updateListener.of(u => {
-          if (u.docChanged && activeIdx >= 0) markDirty(activeIdx);
-          if (u.selectionSet) updatePos(u.view);
-        }),
-        EditorView.theme({ '&': { height: '100%' }, '.cm-scroller': { overflow: 'auto' } })
-      ]
-    }),
-    parent: document.getElementById('editor-mount')
-  });
-}
-
-function setContent(content, name) {
-  const lang = getLang(name);
-  view.dispatch({
-    changes: { from: 0, to: view.state.doc.length, insert: content },
-    effects: [langC.reconfigure(lang || []), themeC.reconfigure(dark ? oneDark : [])]
-  });
-  document.getElementById('st-lang').textContent = langName(name);
-}
-
-const getContent = () => view ? view.state.doc.toString() : '';
-
-function updatePos(v) {
-  const sel = v.state.selection.main;
-  const ln = v.state.doc.lineAt(sel.head);
-  document.getElementById('st-pos').textContent = `Ln ${ln.number}, Col ${sel.head - ln.from + 1}`;
-}
-
-// ── Tabs ──────────────────────────────────────────────────────────────────────
-async function openTab(fileId) {
-  const ex = tabs.findIndex(t => t.fileId === fileId);
-  if (ex >= 0) { await switchTab(ex); return; }
-  const file = await dbGet('files', fileId);
-  if (!file) return;
-  if (activeIdx >= 0) await saveCurrent();
-  tabs.push({ id: uid(), fileId, name: file.name, dirty: false, gistId: file.gistId || null });
-  activeIdx = tabs.length - 1;
-  renderTabs(); showEditor();
-  setContent(file.content || '', file.name);
-  hlTree(fileId); await saveSession();
-}
-
-async function switchTab(idx) {
-  if (idx === activeIdx) return;
-  if (activeIdx >= 0) await saveCurrent();
-  activeIdx = idx;
-  const file = await dbGet('files', tabs[idx].fileId);
-  if (!file) return;
-  renderTabs(); setContent(file.content || '', file.name);
-  hlTree(file.id); await saveSession();
-}
-
-async function saveCurrent(silent = false) {
-  if (activeIdx < 0 || !tabs[activeIdx]) return;
-  const tab = tabs[activeIdx];
-  const content = getContent();
-  const file = await dbGet('files', tab.fileId);
-  if (!file) return;
-  file.content = content;
-  await dbPut('files', file);
-  tabs[activeIdx].dirty = false;
-  if (!silent) renderTabs();
-  const pat = localStorage.getItem('gh_pat');
-  if (pat && file.gistId) gistUpdate(pat, file.gistId, file.name, content).catch(() => {});
-}
-
-async function closeTab(idx) {
-  if (tabs[idx].dirty) await saveCurrent(true);
-  tabs.splice(idx, 1);
-  if (tabs.length === 0) { activeIdx = -1; showEmpty(); }
-  else {
-    if (activeIdx >= tabs.length) activeIdx = tabs.length - 1;
-    const f = await dbGet('files', tabs[activeIdx].fileId);
-    if (f) { setContent(f.content || '', f.name); hlTree(f.id); }
-  }
-  renderTabs(); await saveSession();
-}
-
-function markDirty(idx) {
-  if (tabs[idx] && !tabs[idx].dirty) { tabs[idx].dirty = true; renderTabs(); }
-}
-
-function renderTabs() {
-  const bar = document.getElementById('tab-bar');
-  bar.innerHTML = '';
-  tabs.forEach((tab, i) => {
-    const el = document.createElement('div');
-    el.className = 'tab' + (i === activeIdx ? ' active' : '');
-    if (tab.dirty) { const d = document.createElement('span'); d.className = 'tab-dot'; el.appendChild(d); }
-    const nm = document.createElement('span'); nm.textContent = tab.name; el.appendChild(nm);
-    const x = document.createElement('button'); x.className = 'tab-x'; x.textContent = '×';
-    x.addEventListener('click', e => { e.stopPropagation(); closeTab(i); });
-    el.appendChild(x);
-    el.addEventListener('click', () => switchTab(i));
-    bar.appendChild(el);
-  });
-  const nb = document.createElement('button');
-  nb.className = 'tab-new-btn'; nb.textContent = '+'; nb.title = 'New file';
-  nb.addEventListener('click', () => newFile());
-  bar.appendChild(nb);
-}
-
-const showEditor = () => { document.getElementById('empty-state').style.display = 'none'; document.getElementById('editor-mount').style.display = 'block'; if (view) { view.requestMeasure(); view.focus(); } };
-const showEmpty  = () => { document.getElementById('empty-state').style.display = 'flex'; document.getElementById('editor-mount').style.display = 'none'; };
-
-// ── File ops ──────────────────────────────────────────────────────────────────
-async function newFile(name = null, content = '', parentId = null) {
-  if (!name) { name = await prompt_('New File', 'Filename:', 'untitled.txt'); if (!name) return null; }
-  const file = { id: uid(), name, content, parentId, gistId: null };
-  await dbPut('files', file);
-  await renderTree(); await openTab(file.id);
-  return file;
-}
-
-async function newFolder(parentId = null) {
-  const name = await prompt_('New Folder', 'Folder name:', 'New Folder');
-  if (!name) return;
-  await dbPut('folders', { id: uid(), name, parentId });
-  await renderTree();
-}
-
-async function renameItem(type, id) {
-  const s = type === 'file' ? 'files' : 'folders';
-  const item = await dbGet(s, id);
-  if (!item) return;
-  const n = await prompt_('Rename', 'New name:', item.name);
-  if (!n || n === item.name) return;
-  item.name = n;
-  await dbPut(s, item);
-  if (type === 'file') {
-    const ti = tabs.findIndex(t => t.fileId === id);
-    if (ti >= 0) {
-      tabs[ti].name = n; renderTabs();
-      if (ti === activeIdx) { document.getElementById('st-lang').textContent = langName(n); view.dispatch({ effects: langC.reconfigure(getLang(n) || []) }); }
+// ── CodeMirror init ───────────────────────────────────────────────────────────
+function initCM() {
+  cm = CodeMirror.fromTextArea(document.getElementById('cm-host'), {
+    lineNumbers: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    theme: document.documentElement.dataset.theme === 'dark' ? 'monokai' : 'default',
+    indentUnit: 2,
+    tabSize: 2,
+    indentWithTabs: false,
+    lineWrapping: false,
+    extraKeys: {
+      'Ctrl-F': openFind,
+      'Cmd-F':  openFind,
+      'Ctrl-S': ()=>{ autoSave(); },
+      'Cmd-S':  ()=>{ autoSave(); },
     }
-  }
-  await renderTree();
+  });
+  cm.on('change', () => markDirty());
+  cm.on('cursorActivity', updatePos);
 }
 
-async function deleteItem(type, id) {
-  if (!await confirm_(`Delete this ${type}? This cannot be undone.`)) return;
-  if (type === 'file') {
-    const ti = tabs.findIndex(t => t.fileId === id);
-    if (ti >= 0) await closeTab(ti);
-    await dbDel('files', id);
-  } else {
-    await delFolderRec(id);
-  }
-  await renderTree();
-}
-
-async function delFolderRec(folderId) {
-  const cf = await dbIdx('folders', 'parentId', folderId);
-  for (const f of cf) await delFolderRec(f.id);
-  const ff = await dbIdx('files', 'parentId', folderId);
-  for (const f of ff) {
-    const ti = tabs.findIndex(t => t.fileId === f.id);
-    if (ti >= 0) await closeTab(ti);
-    await dbDel('files', f.id);
-  }
-  await dbDel('folders', folderId);
-}
-
-function dlFile(name, content) {
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([content], {type:'text/plain'})), download: name });
-  a.click(); URL.revokeObjectURL(a.href);
+function updatePos() {
+  const c = cm.getCursor();
+  document.getElementById('st-pos').textContent = `Ln ${c.line+1}, Col ${c.ch+1}`;
 }
 
 // ── File tree ─────────────────────────────────────────────────────────────────
-async function renderTree() {
+function renderTree() {
   const tree = document.getElementById('file-tree');
   tree.innerHTML = '';
-  const files = await dbAll('files'), folders = await dbAll('folders');
-
-  function build(parentId, depth) {
-    const frag = document.createDocumentFragment();
-    const fds = folders.filter(f => f.parentId === parentId).sort((a,b) => a.name.localeCompare(b.name));
-    const fls = files.filter(f => f.parentId === parentId).sort((a,b) => a.name.localeCompare(b.name));
-
-    fds.forEach(fd => {
-      const wrap = document.createElement('div');
-      const row = document.createElement('div');
-      row.className = 'tree-item';
-      row.style.paddingLeft = `${8 + depth * 12}px`;
-      row.dataset.id = fd.id; row.dataset.type = 'folder';
-      const icon = document.createElement('span'); icon.className = 'ti-icon'; icon.textContent = '📁';
-      const nm = document.createElement('span'); nm.className = 'ti-name'; nm.textContent = fd.name;
-      row.appendChild(icon); row.appendChild(nm);
-      const ch = document.createElement('div'); ch.className = 'tree-children';
-      build(fd.id, depth + 1).childNodes.forEach(n => ch.appendChild(n));
-      let open = true;
-      row.addEventListener('click', () => { open = !open; ch.style.display = open ? '' : 'none'; icon.textContent = open ? '📂' : '📁'; });
-      row.addEventListener('contextmenu', e => { e.preventDefault(); showCtx(e, 'folder', fd.id); });
-      icon.textContent = '📂';
-      wrap.appendChild(row); wrap.appendChild(ch); frag.appendChild(wrap);
-    });
-
-    fls.forEach(fl => {
-      const row = document.createElement('div');
-      row.className = 'tree-item' + (tabs[activeIdx]?.fileId === fl.id ? ' active' : '');
-      row.style.paddingLeft = `${8 + depth * 12}px`;
-      row.id = `tf-${fl.id}`; row.dataset.id = fl.id; row.dataset.type = 'file';
-      const icon = document.createElement('span'); icon.className = 'ti-icon'; icon.textContent = fileIcon(fl.name);
-      const nm = document.createElement('span'); nm.className = 'ti-name'; nm.textContent = fl.name;
-      row.appendChild(icon); row.appendChild(nm);
-      row.addEventListener('click', () => openTab(fl.id));
-      row.addEventListener('contextmenu', e => { e.preventDefault(); showCtx(e, 'file', fl.id); });
-      frag.appendChild(row);
-    });
-    return frag;
-  }
-  tree.appendChild(build(null, 0));
+  const roots = Object.values(files).filter(f=>!f.parentId).sort(sortFiles);
+  roots.forEach(f => tree.appendChild(buildTreeItem(f)));
 }
 
-function hlTree(fileId) {
-  document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
-  const el = document.getElementById(`tf-${fileId}`);
-  if (el) el.classList.add('active');
+function sortFiles(a,b) {
+  if (a.isFolder && !b.isFolder) return -1;
+  if (!a.isFolder && b.isFolder) return 1;
+  return a.name.localeCompare(b.name);
+}
+
+function buildTreeItem(f, depth=0) {
+  const wrap = document.createElement('div');
+  const item = document.createElement('div');
+  item.className = 'tree-item';
+  item.style.paddingLeft = (8 + depth*12) + 'px';
+  const activeFile = tabs[activeTab]?.fileId;
+  if (!f.isFolder && f.id === activeFile) item.classList.add('active');
+
+  item.innerHTML = `<span class="ti-icon">${f.isFolder ? '&#128193;' : fileIcon(f.name)}</span><span class="ti-name">${esc(f.name)}</span>`;
+  if (!f.isFolder) {
+    item.onclick = () => openFileTab(f.id);
+  } else {
+    item.onclick = () => toggleFolder(f.id, wrap);
+  }
+  item.addEventListener('contextmenu', e => { e.preventDefault(); showCtx(e, f.id); });
+  wrap.appendChild(item);
+
+  if (f.isFolder) {
+    const children = document.createElement('div');
+    children.className = 'tree-children';
+    children.dataset.folderId = f.id;
+    const kids = Object.values(files).filter(c=>c.parentId===f.id).sort(sortFiles);
+    kids.forEach(k => children.appendChild(buildTreeItem(k, depth+1)));
+    wrap.appendChild(children);
+  }
+  return wrap;
+}
+
+function toggleFolder(id, wrap) {
+  const ch = wrap.querySelector('.tree-children');
+  if (ch) ch.style.display = ch.style.display === 'none' ? '' : 'none';
+}
+
+function fileIcon(name) {
+  const ext = (name||'').split('.').pop().toLowerCase();
+  const icons = {js:'&#128196;',ts:'&#128196;',html:'&#127760;',css:'&#127912;',py:'&#128013;',md:'&#128209;',json:'&#123;',sql:'&#128200;',sh:'&#128187;'};
+  return icons[ext] || '&#128196;';
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function renderTabs() {
+  const bar = document.getElementById('tab-bar');
+  bar.innerHTML = '';
+  tabs.forEach((t,i) => {
+    const f = files[t.fileId];
+    const div = document.createElement('div');
+    div.className = 'tab' + (i===activeTab?' active':'');
+    div.innerHTML = `${t.dirty?'<span class="tab-dot"></span>':''}${esc(f?.name||'Untitled')}<button class="tab-x" title="Close">&#10005;</button>`;
+    div.onclick = e => { if (!e.target.classList.contains('tab-x')) switchTab(i); };
+    div.querySelector('.tab-x').onclick = e => { e.stopPropagation(); closeTab(i); };
+    bar.appendChild(div);
+  });
+  const nb = document.createElement('button');
+  nb.className = 'tab-new-btn';
+  nb.textContent = '+';
+  nb.onclick = newFile;
+  bar.appendChild(nb);
+}
+
+function switchTab(i) {
+  if (i === activeTab) return;
+  autoSave();
+  activeTab = i;
+  loadTabContent();
+}
+
+function loadTabContent() {
+  const t = tabs[activeTab];
+  if (!t) { showEmpty(true); return; }
+  const f = files[t.fileId];
+  if (!f) { showEmpty(true); return; }
+  showEmpty(false);
+  cm.setValue(f.content || '');
+  cm.setOption('mode', getLang(f.name));
+  cm.clearHistory();
+  document.getElementById('st-lang').textContent = getLangName(f.name);
+  renderTabs();
+  renderTree();
+  setTimeout(()=>{ cm.refresh(); cm.focus(); }, 30);
+}
+
+function showEmpty(yes) {
+  document.getElementById('empty-state').style.display = yes ? '' : 'none';
+}
+
+function openFileTab(fileId) {
+  const existing = tabs.findIndex(t=>t.fileId===fileId);
+  if (existing >= 0) { switchTab(existing); return; }
+  autoSave();
+  tabs.push({fileId, dirty:false});
+  activeTab = tabs.length - 1;
+  loadTabContent();
+}
+
+function closeTab(i) {
+  if (tabs[i]?.dirty) autoSave();
+  tabs.splice(i,1);
+  if (activeTab >= tabs.length) activeTab = tabs.length - 1;
+  if (tabs.length === 0) { showEmpty(true); renderTabs(); renderTree(); return; }
+  loadTabContent();
+}
+
+function markDirty() {
+  if (activeTab < 0) return;
+  if (!tabs[activeTab].dirty) { tabs[activeTab].dirty = true; renderTabs(); }
+}
+
+// ── File ops ──────────────────────────────────────────────────────────────────
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+
+async function newFile(parentId=null, defaultName='untitled.txt') {
+  const name = prompt('File name:', defaultName);
+  if (!name) return;
+  const f = {id:uid(), name, parentId, isFolder:false, content:'', gistId:null, gistFileId:null};
+  files[f.id] = f;
+  await dbPut('files', f);
+  renderTree();
+  openFileTab(f.id);
+}
+
+async function newFolder(parentId=null) {
+  const name = prompt('Folder name:', 'New Folder');
+  if (!name) return;
+  const f = {id:uid(), name, parentId, isFolder:true, content:''};
+  files[f.id] = f;
+  await dbPut('files', f);
+  renderTree();
+}
+
+function openFilePicker() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.multiple = true;
+  inp.onchange = async () => {
+    for (const file of inp.files) {
+      const text = await file.text();
+      const f = {id:uid(), name:file.name, parentId:null, isFolder:false, content:text, gistId:null, gistFileId:null};
+      files[f.id] = f;
+      await dbPut('files', f);
+      renderTree();
+      openFileTab(f.id);
+    }
+  };
+  inp.click();
+}
+
+function downloadActive() {
+  if (activeTab < 0) return;
+  autoSave();
+  const f = files[tabs[activeTab].fileId];
+  if (!f) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([f.content], {type:'text/plain'}));
+  a.download = f.name;
+  a.click();
+}
+
+async function autoSave() {
+  if (activeTab < 0) return;
+  const t = tabs[activeTab];
+  if (!t) return;
+  const f = files[t.fileId];
+  if (!f || f.isFolder) return;
+  f.content = cm.getValue();
+  t.dirty = false;
+  await dbPut('files', f);
+  await persistSession();
+  renderTabs();
+}
+
+async function persistSession() {
+  await dbPut('meta', {key:'session', tabs: tabs.map(t=>t.fileId), activeTab});
 }
 
 // ── Context menu ──────────────────────────────────────────────────────────────
-function showCtx(e, type, id) {
-  ctxTarget = { type, id };
+function showCtx(e, fileId) {
+  ctxTarget = fileId;
   const m = document.getElementById('ctx-menu');
-  m.style.left = e.clientX + 'px'; m.style.top = e.clientY + 'px';
+  m.style.left = e.clientX + 'px';
+  m.style.top  = e.clientY + 'px';
   m.classList.add('show');
-  m.querySelector('[data-a="dl"]').style.display = type === 'file' ? '' : 'none';
 }
-const hideCtx = () => { document.getElementById('ctx-menu').classList.remove('show'); ctxTarget = null; };
-
-document.getElementById('ctx-menu').addEventListener('click', async e => {
-  const a = e.target.dataset.a;
-  if (!a || !ctxTarget) { hideCtx(); return; }
-  hideCtx();
-  if (a === 'rename') await renameItem(ctxTarget.type, ctxTarget.id);
-  else if (a === 'del') await deleteItem(ctxTarget.type, ctxTarget.id);
-  else if (a === 'dl') { const f = await dbGet('files', ctxTarget.id); if (f) dlFile(f.name, f.content || ''); }
-});
+function hideCtx() { document.getElementById('ctx-menu').classList.remove('show'); }
 document.addEventListener('click', hideCtx);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideCtx(); closeFind(); } });
+document.getElementById('ctx-rename').onclick = () => { if(ctxTarget) openRenameModal(ctxTarget); };
+document.getElementById('ctx-download').onclick = () => {
+  if (!ctxTarget) return;
+  const f = files[ctxTarget];
+  if (!f || f.isFolder) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([f.content],{type:'text/plain'}));
+  a.download = f.name;
+  a.click();
+};
+document.getElementById('ctx-delete').onclick = async () => {
+  if (!ctxTarget) return;
+  if (!confirm('Delete "'+files[ctxTarget]?.name+'"?')) return;
+  const id = ctxTarget;
+  const ti = tabs.findIndex(t=>t.fileId===id);
+  if (ti>=0) closeTab(ti);
+  delete files[id];
+  await dbDelete('files', id);
+  renderTree();
+};
 
-// ── Session ───────────────────────────────────────────────────────────────────
-async function saveSession() {
-  await dbPut('session', { key: 'tabs', value: tabs.map(t => ({ fileId: t.fileId, name: t.name, gistId: t.gistId })) });
-  await dbPut('session', { key: 'idx', value: activeIdx });
+// ── Rename ────────────────────────────────────────────────────────────────────
+function openRenameModal(id) {
+  renameTarget = id;
+  document.getElementById('rename-input').value = files[id]?.name || '';
+  document.getElementById('rename-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('rename-input').select(),50);
 }
-
-async function restoreSession() {
-  const saved = await dbGet('session', 'tabs');
-  const sidx = await dbGet('session', 'idx');
-  if (!saved?.value?.length) return;
-  for (const t of saved.value) {
-    const f = await dbGet('files', t.fileId);
-    if (!f) continue;
-    tabs.push({ id: uid(), fileId: t.fileId, name: t.name, dirty: false, gistId: t.gistId });
+function closeRenameModal() { document.getElementById('rename-modal').classList.remove('show'); renameTarget=null; }
+async function confirmRename() {
+  if (!renameTarget) return;
+  const name = document.getElementById('rename-input').value.trim();
+  if (!name) return;
+  files[renameTarget].name = name;
+  await dbPut('files', files[renameTarget]);
+  closeRenameModal();
+  renderTree();
+  renderTabs();
+  if (tabs[activeTab]?.fileId === renameTarget) {
+    cm.setOption('mode', getLang(name));
+    document.getElementById('st-lang').textContent = getLangName(name);
   }
-  if (tabs.length > 0) {
-    activeIdx = Math.min(sidx?.value ?? 0, tabs.length - 1);
-    renderTabs(); showEditor();
-    const f = await dbGet('files', tabs[activeIdx].fileId);
-    if (f) { setContent(f.content || '', f.name); hlTree(f.id); }
-  }
 }
-
-// ── GitHub Gist ───────────────────────────────────────────────────────────────
-const ghHeaders = pat => ({ 'Authorization': `Bearer ${pat}`, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' });
-
-async function gistCreate(pat, name, content) {
-  const r = await fetch('https://api.github.com/gists', { method: 'POST', headers: ghHeaders(pat), body: JSON.stringify({ description: `WebEditor: ${name}`, public: false, files: { [name]: { content: content || ' ' } } }) });
-  if (!r.ok) throw new Error(`GitHub ${r.status}`);
-  return r.json();
-}
-
-async function gistUpdate(pat, gistId, name, content) {
-  const r = await fetch(`https://api.github.com/gists/${gistId}`, { method: 'PATCH', headers: ghHeaders(pat), body: JSON.stringify({ files: { [name]: { content: content || ' ' } } }) });
-  if (!r.ok) throw new Error(`GitHub ${r.status}`);
-  return r.json();
-}
-
-async function gistGet(pat, gistId) {
-  const r = await fetch(`https://api.github.com/gists/${gistId}`, { headers: ghHeaders(pat) });
-  if (!r.ok) throw new Error(`GitHub ${r.status}`);
-  return r.json();
-}
-
-async function saveToGist() {
-  if (activeIdx < 0) return;
-  const pat = localStorage.getItem('gh_pat');
-  if (!pat) { status_('No GitHub token. Add it in Settings.', true); return; }
-  await saveCurrent(true);
-  const tab = tabs[activeIdx];
-  const file = await dbGet('files', tab.fileId);
-  if (!file) return;
-  status_('Saving to Gist…');
-  try {
-    let g;
-    if (file.gistId) {
-      g = await gistUpdate(pat, file.gistId, file.name, file.content || '');
-    } else {
-      g = await gistCreate(pat, file.name, file.content || '');
-      file.gistId = g.id;
-      await dbPut('files', file);
-      tabs[activeIdx].gistId = g.id;
-      await saveSession();
-    }
-    status_(`Saved to Gist ${g.id.slice(0,8)}…`);
-  } catch (err) { status_(err.message, true); }
-}
-
-async function loadFromGist() {
-  const pat = localStorage.getItem('gh_pat');
-  if (!pat) { status_('No GitHub token. Add it in Settings.', true); return; }
-  const input = await prompt_('Load from Gist', 'Gist ID or URL:', '');
-  if (!input) return;
-  const gistId = input.includes('/') ? input.split('/').filter(Boolean).pop().split('?')[0] : input.trim();
-  status_('Loading…');
-  try {
-    const gist = await gistGet(pat, gistId);
-    for (const [fname, fdata] of Object.entries(gist.files)) {
-      let content = fdata.content;
-      if (fdata.truncated) content = await (await fetch(fdata.raw_url)).text();
-      const allFiles = await dbAll('files');
-      const ex = allFiles.find(f => f.gistId === gistId && f.name === fname);
-      let fileId;
-      if (ex) { ex.content = content; await dbPut('files', ex); fileId = ex.id; }
-      else { const nf = { id: uid(), name: fname, content, parentId: null, gistId }; await dbPut('files', nf); fileId = nf.id; }
-      await openTab(fileId);
-    }
-    await renderTree();
-    status_(`Loaded Gist ${gistId.slice(0,8)}…`);
-  } catch (err) { status_(err.message, true); }
-}
-
-// ── Find / Replace ────────────────────────────────────────────────────────────
-let matches = [], mIdx = -1;
-
-const openFind  = () => { document.getElementById('find-bar').classList.add('show'); document.getElementById('fi').focus(); };
-const closeFind = () => { document.getElementById('find-bar').classList.remove('show'); view?.focus(); };
-
-function doFind() {
-  const q = document.getElementById('fi').value;
-  if (!q || !view) { matches = []; mIdx = -1; updateCount(); return; }
-  const doc = view.state.doc.toString();
-  matches = [];
-  let i = 0;
-  while (true) { const p = doc.indexOf(q, i); if (p < 0) break; matches.push({ from: p, to: p + q.length }); i = p + 1; }
-  mIdx = matches.length > 0 ? 0 : -1;
-  updateCount(); if (mIdx >= 0) goMatch(mIdx);
-}
-
-function goMatch(i) {
-  if (i < 0 || i >= matches.length) return;
-  view.dispatch({ selection: { anchor: matches[i].from, head: matches[i].to }, scrollIntoView: true });
-}
-
-const findNext = () => { if (!matches.length) return; mIdx = (mIdx + 1) % matches.length; updateCount(); goMatch(mIdx); };
-const findPrev = () => { if (!matches.length) return; mIdx = (mIdx - 1 + matches.length) % matches.length; updateCount(); goMatch(mIdx); };
-
-function replaceOne() {
-  if (mIdx < 0 || !view) return;
-  const m = matches[mIdx], rep = document.getElementById('ri').value;
-  view.dispatch({ changes: { from: m.from, to: m.to, insert: rep } }); doFind();
-}
-
-function replaceAll() {
-  if (!matches.length || !view) return;
-  const rep = document.getElementById('ri').value;
-  view.dispatch({ changes: matches.map(m => ({ from: m.from, to: m.to, insert: rep })) }); doFind();
-}
-
-function updateCount() {
-  document.getElementById('find-count').textContent = matches.length === 0 ? 'No results' : `${mIdx + 1} of ${matches.length}`;
-}
-
-document.getElementById('fi').addEventListener('input', doFind);
-document.getElementById('fi').addEventListener('keydown', e => { if (e.key === 'Enter') e.shiftKey ? findPrev() : findNext(); });
-document.getElementById('fnext').addEventListener('click', findNext);
-document.getElementById('fprev').addEventListener('click', findPrev);
-document.getElementById('frone').addEventListener('click', replaceOne);
-document.getElementById('frall').addEventListener('click', replaceAll);
-document.getElementById('find-close').addEventListener('click', closeFind);
-document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); openFind(); } });
-
-// ── Theme ─────────────────────────────────────────────────────────────────────
-function setTheme(d) {
-  dark = d;
-  document.documentElement.setAttribute('data-theme', d ? 'dark' : 'light');
-  document.getElementById('theme-icon').textContent = d ? '☀️' : '🌙';
-  localStorage.setItem('theme', d ? 'dark' : 'light');
-  if (view) view.dispatch({ effects: themeC.reconfigure(d ? oneDark : []) });
-}
-document.getElementById('btn-theme').addEventListener('click', () => setTheme(!dark));
-
-// ── Settings ──────────────────────────────────────────────────────────────────
-function openSettings() {
-  const pat = localStorage.getItem('gh_pat') || '';
-  showModal('Settings', `
-    <div class="mfield">
-      <label class="mlabel">GitHub Personal Access Token</label>
-      <input class="minput" id="s-pat" type="password" value="${pat}" placeholder="ghp_…" autocomplete="off" />
-      <p class="mhelp">Requires the <strong>gist</strong> scope. Stored in your browser only, never sent anywhere else.</p>
-    </div>
-  `, () => {
-    const v = document.getElementById('s-pat').value.trim();
-    if (v) localStorage.setItem('gh_pat', v); else localStorage.removeItem('gh_pat');
-    status_('Settings saved');
-  });
-}
-document.getElementById('btn-settings').addEventListener('click', openSettings);
-
-// ── Modal helpers ─────────────────────────────────────────────────────────────
-function showModal(title, body, onOk) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-body').innerHTML = body;
-  modalCb = onOk;
-  document.getElementById('modal-overlay').classList.add('show');
-}
-const hideModal = () => { document.getElementById('modal-overlay').classList.remove('show'); modalCb = null; };
-document.getElementById('modal-cancel').addEventListener('click', () => { hideModal(); });
-document.getElementById('modal-ok').addEventListener('click', () => { if (modalCb) modalCb(); hideModal(); });
-document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === document.getElementById('modal-overlay')) hideModal(); });
-
-function prompt_(title, label, def = '') {
-  return new Promise(res => {
-    showModal(title, `<div class="mfield"><label class="mlabel">${label}</label><input class="minput" id="p-in" value="${def}" /></div>`, () => res(document.getElementById('p-in').value.trim() || null));
-    document.getElementById('modal-cancel').onclick = () => { hideModal(); res(null); };
-    setTimeout(() => document.getElementById('p-in')?.select(), 40);
-  });
-}
-
-function confirm_(msg) {
-  return new Promise(res => {
-    showModal('Confirm', `<p style="color:var(--text)">${msg}</p>`, () => res(true));
-    document.getElementById('modal-cancel').onclick = () => { hideModal(); res(false); };
-  });
-}
-
-// ── Status ────────────────────────────────────────────────────────────────────
-let stTimer;
-function status_(msg, err = false) {
-  const el = document.getElementById('status-msg');
-  el.textContent = msg; el.className = err ? 'err' : '';
-  clearTimeout(stTimer); stTimer = setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
-}
+document.getElementById('rename-input').addEventListener('keydown', e => { if(e.key==='Enter') confirmRename(); if(e.key==='Escape') closeRenameModal(); });
 
 // ── Drag and drop ─────────────────────────────────────────────────────────────
 const wrap = document.getElementById('editor-wrap');
-const dov  = document.getElementById('drag-overlay');
-wrap.addEventListener('dragover', e => { e.preventDefault(); dov.classList.add('show'); });
-wrap.addEventListener('dragleave', e => { if (!wrap.contains(e.relatedTarget)) dov.classList.remove('show'); });
+wrap.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drag-overlay').classList.add('show'); });
+wrap.addEventListener('dragleave', () => document.getElementById('drag-overlay').classList.remove('show'));
 wrap.addEventListener('drop', async e => {
-  e.preventDefault(); dov.classList.remove('show');
-  for (const f of Array.from(e.dataTransfer.files)) await newFile(f.name, await f.text(), null);
+  e.preventDefault();
+  document.getElementById('drag-overlay').classList.remove('show');
+  for (const file of e.dataTransfer.files) {
+    const text = await file.text();
+    const f = {id:uid(), name:file.name, parentId:null, isFolder:false, content:text, gistId:null, gistFileId:null};
+    files[f.id] = f;
+    await dbPut('files', f);
+    renderTree();
+    openFileTab(f.id);
+  }
 });
+
+// ── Find / Replace ────────────────────────────────────────────────────────────
+let findMatches = [], findIdx = 0;
+function openFind() {
+  document.getElementById('find-bar').classList.add('show');
+  document.getElementById('find-input').focus();
+}
+function closeFind() {
+  document.getElementById('find-bar').classList.remove('show');
+  cm.focus();
+  clearMarks();
+}
+function clearMarks() {
+  cm.getAllMarks().forEach(m=>m.clear());
+  findMatches=[];
+  document.getElementById('find-count').textContent='';
+}
+function doSearch() {
+  clearMarks();
+  const q = document.getElementById('find-input').value;
+  if (!q) return;
+  const cur = cm.getSearchCursor(q);
+  while (cur.findNext()) {
+    const m = cm.markText(cur.from(), cur.to(), {className:'cm-searching'});
+    findMatches.push({from:cur.from(), to:cur.to(), mark:m});
+  }
+  document.getElementById('find-count').textContent = findMatches.length + ' results';
+  if (findMatches.length) { findIdx=0; cm.scrollIntoView(findMatches[0]); }
+}
+function findNext() { if(!findMatches.length){doSearch();return;} findIdx=(findIdx+1)%findMatches.length; cm.scrollIntoView(findMatches[findIdx]); }
+function findPrev() { if(!findMatches.length){doSearch();return;} findIdx=(findIdx+findMatches.length-1)%findMatches.length; cm.scrollIntoView(findMatches[findIdx]); }
+function replaceOne() {
+  const rep = document.getElementById('replace-input').value;
+  if (!findMatches.length) { doSearch(); return; }
+  const m = findMatches[findIdx];
+  cm.replaceRange(rep, m.from, m.to);
+  doSearch();
+}
+function replaceAll() {
+  const q = document.getElementById('find-input').value;
+  const rep = document.getElementById('replace-input').value;
+  if (!q) return;
+  const cur = cm.getSearchCursor(q);
+  while(cur.findNext()) cur.replace(rep);
+  doSearch();
+}
+document.getElementById('find-input').addEventListener('input', doSearch);
+document.getElementById('find-input').addEventListener('keydown', e=>{ if(e.key==='Enter') findNext(); if(e.key==='Escape') closeFind(); });
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const d = document.documentElement.dataset.theme === 'dark';
+  document.documentElement.dataset.theme = d ? 'light' : 'dark';
+  cm.setOption('theme', d ? 'default' : 'monokai');
+  localStorage.setItem('we-theme', document.documentElement.dataset.theme);
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('pat-input').value = localStorage.getItem('we-pat')||'';
+  document.getElementById('settings-modal').classList.add('show');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('show'); }
+function saveSettings() {
+  localStorage.setItem('we-pat', document.getElementById('pat-input').value.trim());
+  closeSettings();
+  status('Settings saved');
+}
+
+// ── Gist sync ─────────────────────────────────────────────────────────────────
+function getPAT() { return localStorage.getItem('we-pat')||''; }
+
+async function saveToGist() {
+  if (activeTab < 0) return;
+  await autoSave();
+  const f = files[tabs[activeTab].fileId];
+  if (!f || f.isFolder) return;
+  const pat = getPAT();
+  if (!pat) { openSettings(); return; }
+  const body = {description:'WebEditor file', public:false, files:{[f.name]:{content:f.content||' '}}};
+  try {
+    status('Saving to Gist...');
+    let url = 'https://api.github.com/gists';
+    let method = 'POST';
+    if (f.gistId) { url += '/'+f.gistId; method='PATCH'; }
+    const r = await fetch(url, {method, headers:{'Authorization':'token '+pat,'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    f.gistId = data.id;
+    await dbPut('files', f);
+    status('Saved to Gist: ' + data.html_url);
+  } catch(e) { status('Gist error: '+e.message, true); }
+}
+
+function openLoadGistModal() {
+  document.getElementById('gist-input').value='';
+  document.getElementById('gist-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('gist-input').focus(),50);
+}
+function closeGistModal() { document.getElementById('gist-modal').classList.remove('show'); }
+
+async function loadGist() {
+  const raw = document.getElementById('gist-input').value.trim();
+  const id = raw.split('/').pop();
+  if (!id) return;
+  const pat = getPAT();
+  try {
+    status('Loading Gist...');
+    const headers = pat ? {'Authorization':'token '+pat} : {};
+    const r = await fetch('https://api.github.com/gists/'+id, {headers});
+    if (!r.ok) throw new Error('Gist not found');
+    const data = await r.json();
+    for (const [fname, fdata] of Object.entries(data.files)) {
+      const f = {id:uid(), name:fname, parentId:null, isFolder:false, content:fdata.content||'', gistId:id, gistFileId:fname};
+      files[f.id] = f;
+      await dbPut('files', f);
+      renderTree();
+      openFileTab(f.id);
+    }
+    closeGistModal();
+    status('Loaded from Gist');
+  } catch(e) { status('Gist error: '+e.message, true); }
+}
+
+// ── Status ────────────────────────────────────────────────────────────────────
+let statusTimer;
+function status(msg, err=false) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = err ? 'err' : '';
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(()=>{ el.textContent=''; el.className=''; }, 4000);
+}
 
 // ── Sidebar resize ────────────────────────────────────────────────────────────
-const rh = document.getElementById('rhandle'), sb = document.getElementById('sidebar');
-let resizing = false;
-rh.addEventListener('mousedown', () => { resizing = true; rh.classList.add('dragging'); document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; });
-document.addEventListener('mousemove', e => { if (!resizing) return; const w = e.clientX; if (w >= 100 && w <= 520) sb.style.width = w + 'px'; });
-document.addEventListener('mouseup', () => { if (resizing) { resizing = false; rh.classList.remove('dragging'); document.body.style.cursor = ''; document.body.style.userSelect = ''; } });
+const rh = document.getElementById('rhandle');
+let resizing=false, resizeX=0, resizeW=0;
+rh.addEventListener('mousedown', e=>{ resizing=true; resizeX=e.clientX; resizeW=document.getElementById('sidebar').offsetWidth; rh.classList.add('dragging'); });
+document.addEventListener('mousemove', e=>{ if(!resizing)return; const w=Math.max(120,Math.min(450,resizeW+(e.clientX-resizeX))); document.getElementById('sidebar').style.width=w+'px'; });
+document.addEventListener('mouseup', ()=>{ resizing=false; rh.classList.remove('dragging'); });
 
-// ── Button wiring ─────────────────────────────────────────────────────────────
-document.getElementById('btn-new').addEventListener('click', () => newFile());
-document.getElementById('btn-new-sb').addEventListener('click', () => newFile());
-document.getElementById('btn-folder-sb').addEventListener('click', () => newFolder());
-document.getElementById('btn-open').addEventListener('click', () => document.getElementById('file-input').click());
-document.getElementById('file-input').addEventListener('change', async e => {
-  for (const f of Array.from(e.target.files)) await newFile(f.name, await f.text(), null);
-  e.target.value = '';
-});
-document.getElementById('btn-dl').addEventListener('click', async () => {
-  if (activeIdx < 0) return;
-  await saveCurrent(true);
-  const f = await dbGet('files', tabs[activeIdx].fileId);
-  if (f) dlFile(f.name, f.content || '');
-});
-document.getElementById('btn-gist-save').addEventListener('click', saveToGist);
-document.getElementById('btn-gist-load').addEventListener('click', loadFromGist);
-document.getElementById('btn-find-open').addEventListener('click', openFind);
-window.addEventListener('blur', () => { if (activeIdx >= 0) saveCurrent(true).catch(() => {}); });
+// ── Auto-save on blur ─────────────────────────────────────────────────────────
+window.addEventListener('blur', autoSave);
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-async function init() {
+// ── Boot ──────────────────────────────────────────────────────────────────────
+async function boot() {
   await openDB();
-  setTheme(localStorage.getItem('theme') === 'dark');
-  initEditor();
-  showEmpty();
-  await renderTree();
-  await restoreSession();
-}
-init().catch(console.error);
-</script>
+  const theme = localStorage.getItem('we-theme') || 'dark';
+  document.documentElement.dataset.theme = theme;
+  initCM();
+  // load theme after CM init
+  if (theme === 'light') cm.setOption('theme','default');
 
-<script>
-// PDF export boilerplate (safe — only activates inside Glean)
-try {
-  window.GleanBridge.postMessage({ actionId: 'export-pdf', type: 'glean-add-menu', metadata: { label: 'Export as PDF', icon: 'export' } });
-  window.GleanBridge.onMessage('action', function(data) { if (data.actionId === 'export-pdf') window.print(); });
-} catch(e) {}
+  const all = await dbGetAll('files');
+  all.forEach(f => { files[f.id] = f; });
+
+  const sess = await dbGet('meta','session');
+  if (sess && sess.tabs) {
+    sess.tabs.forEach(fid => { if(files[fid]) tabs.push({fileId:fid,dirty:false}); });
+    activeTab = Math.min(sess.activeTab||0, tabs.length-1);
+  }
+
+  renderTree();
+  if (tabs.length > 0) {
+    loadTabContent();
+  } else {
+    showEmpty(true);
+    renderTabs();
+  }
+}
+
+boot();
 </script>
 </body>
 </html>
