@@ -528,7 +528,7 @@ function renderTabs() {
   bar.appendChild(nb);
 }
 
-const showEditor = () => { document.getElementById('empty-state').style.display = 'none'; document.getElementById('editor-mount').style.display = 'block'; };
+const showEditor = () => { document.getElementById('empty-state').style.display = 'none'; document.getElementById('editor-mount').style.display = 'block'; if (view) { view.requestMeasure(); view.focus(); } };
 const showEmpty  = () => { document.getElementById('empty-state').style.display = 'flex'; document.getElementById('editor-mount').style.display = 'none'; };
 
 // ── File ops ──────────────────────────────────────────────────────────────────
